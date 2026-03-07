@@ -1,0 +1,136 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+
+
+@layer base {
+  body {
+    @apply font-sans bg-[#050505] text-slate-200;
+  }
+}
+
+
+/* ─── Leaflet ─────────────────────────────────────────── */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 1rem;
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+/* ─── Glass Cards ─────────────────────────────────────── */
+.glass-card {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
+}
+
+/* Admin portal deep dark glass */
+.admin-glass {
+  background: rgba(20, 0, 0, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  box-shadow: 0 0 40px rgba(180, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.admin-glow-card {
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 18px rgba(180, 0, 0, 0.15), 0 0 50px rgba(180, 0, 0, 0.04);
+  background: rgba(12, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+}
+
+.admin-glow-card:hover {
+  border-color: rgba(239, 68, 68, 0.45);
+  box-shadow: 0 0 28px rgba(200, 0, 0, 0.3), 0 0 70px rgba(180, 0, 0, 0.08);
+}
+
+/* User glass card (yellow) */
+.user-glow-card {
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  box-shadow: 0 0 18px rgba(180, 130, 0, 0.12), 0 0 50px rgba(180, 130, 0, 0.04);
+  background: rgba(12, 10, 0, 0.6);
+  backdrop-filter: blur(20px);
+}
+
+.user-glow-card:hover {
+  border-color: rgba(234, 179, 8, 0.45);
+  box-shadow: 0 0 28px rgba(200, 150, 0, 0.25), 0 0 70px rgba(180, 130, 0, 0.08);
+}
+
+/* ─── High-priority pulse ─────────────────────────────── */
+.high-priority-glow {
+  border: 1px solid rgba(239, 68, 68, 0.6) !important;
+  box-shadow: 0 0 20px rgba(220, 0, 0, 0.4), 0 0 50px rgba(200, 0, 0, 0.15) !important;
+  animation: priorityPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes priorityPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(220, 0, 0, 0.4), 0 0 50px rgba(200, 0, 0, 0.15);
+  }
+
+  50% {
+    box-shadow: 0 0 35px rgba(239, 68, 68, 0.6), 0 0 70px rgba(220, 0, 0, 0.25);
+  }
+}
+
+/* ─── Status Pills ────────────────────────────────────── */
+.status-not_started {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.status-in_progress {
+  background: rgba(234, 179, 8, 0.1);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.status-resolved {
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.theme-user .status-not_started {
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.theme-user .status-in_progress {
+  background: rgba(234, 179, 8, 0.1);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.theme-user .status-resolved {
+  background: rgba(234, 179, 8, 0.05);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.15);
+}
+
+/* ─── Scrollbar ───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

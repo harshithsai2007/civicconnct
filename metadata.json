@@ -1,0 +1,5 @@
+{
+  "name": "CivicConnect",
+  "description": "A modern civic issue reporting and community voting platform for citizens and administrators.",
+  "requestFramePermissions": ["geolocation"]
+}
