@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
 import { Users, CheckCircle2, Clock, AlertTriangle, TrendingUp, Map as MapIcon, ArrowUpRight, Building2 } from 'lucide-react';
 
@@ -18,7 +18,29 @@ export const AdminDashboard: React.FC = () => {
 
   if (!stats) return <div className="flex items-center justify-center h-64 text-red-500 font-bold animate-pulse">Initializing Analytics...</div>;
 
-  const COLORS = ['#eab308', '#ca8a04', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-black/80 backdrop-blur-md border border-white/10 p-4 rounded-2xl shadow-2xl"
+        >
+          <p className="text-white font-bold mb-2">{label || payload[0].name}</p>
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center gap-2 text-sm">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color || entry.payload.fill || '#ef4444' }} />
+              <span className="text-slate-300">{entry.name}:</span>
+              <span className="text-white font-bold">{entry.value}</span>
+            </div>
+          ))}
+        </motion.div>
+      );
+    }
+    return null;
+  };
 
   const StatCard = ({ title, value, icon: Icon, color, delay }: any) => (
     <motion.div
@@ -54,85 +76,121 @@ export const AdminDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="glass-card p-8 rounded-[2.5rem]"
+          initial={{ opacity: 0, x: -20, y: 20 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
+          transition={{ delay: 0.5, type: 'spring' }}
+          className="glass-card p-8 rounded-[2.5rem] relative group"
         >
-          <h3 className="text-xl font-bold text-white mb-8 flex items-center justify-between">
+          <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-transparent rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <h3 className="text-xl font-bold text-white mb-8 flex items-center justify-between relative z-10">
             Category Distribution
-            <ArrowUpRight className="w-5 h-5 text-slate-500" />
+            <ArrowUpRight className="w-5 h-5 text-slate-500 group-hover:text-yellow-400 transition-colors" />
           </h3>
-          <div className="h-72">
+          <div className="h-72 relative z-10">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.byCategory}>
+              <BarChart data={stats.byCategory} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorCategory" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#eab308" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#ca8a04" stopOpacity={0.2} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="category" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                  itemStyle={{ color: '#eab308' }}
+                <XAxis dataKey="category" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                <Bar
+                  dataKey="count"
+                  name="Reports"
+                  fill="url(#colorCategory)"
+                  radius={[6, 6, 0, 0]}
+                  animationDuration={1500}
+                  animationEasing="ease-out"
                 />
-                <Bar dataKey="count" fill="#eab308" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="glass-card p-8 rounded-[2.5rem]"
+          initial={{ opacity: 0, x: 20, y: 20 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
+          transition={{ delay: 0.6, type: 'spring' }}
+          className="glass-card p-8 rounded-[2.5rem] relative group"
         >
-          <h3 className="text-xl font-bold text-white mb-8 flex items-center justify-between">
+          <div className="absolute inset-0 bg-gradient-to-bl from-blue-500/5 to-transparent rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <h3 className="text-xl font-bold text-white mb-8 flex items-center justify-between relative z-10">
             Resolution Status
-            <ArrowUpRight className="w-5 h-5 text-slate-500" />
+            <ArrowUpRight className="w-5 h-5 text-slate-500 group-hover:text-blue-400 transition-colors" />
           </h3>
-          <div className="h-72">
+          <div className="h-72 relative z-10">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={stats.byStatus}
                   cx="50%"
                   cy="50%"
-                  innerRadius={70}
-                  outerRadius={90}
-                  paddingAngle={8}
+                  innerRadius={80}
+                  outerRadius={100}
+                  paddingAngle={5}
                   dataKey="count"
                   nameKey="status"
+                  animationDuration={1500}
+                  animationEasing="ease-out"
                 >
                   {stats.byStatus.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="rgba(0,0,0,0.2)" strokeWidth={2} className="hover:opacity-80 transition-opacity cursor-pointer" />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  iconType="circle"
+                  formatter={(value) => <span className="text-slate-300 text-xs font-medium capitalize">{value.replace('_', ' ')}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
-        {/* New Corporation Workload Chart */}
+        {/* Improved Corporation Workload Chart */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-8 rounded-[2.5rem] lg:col-span-2"
+          transition={{ delay: 0.7, type: 'spring' }}
+          className="glass-card p-8 rounded-[2.5rem] lg:col-span-2 relative group"
         >
-          <h3 className="text-xl font-bold text-white mb-8 flex items-center justify-between">
-            Departmental Workload (GVMC, VMRDA, etc.)
-            <Building2 className="w-5 h-5 text-red-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-red-500/5 to-transparent rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <h3 className="text-xl font-bold text-white mb-8 flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-3">
+              Departmental Workload
+              <span className="text-xs px-3 py-1 bg-red-500/10 text-red-400 rounded-full border border-red-500/20 font-bold tracking-wider uppercase">Live</span>
+            </div>
+            <Building2 className="w-6 h-6 text-red-500 group-hover:scale-110 transition-transform" />
           </h3>
-          <div className="h-72">
+          <div className="h-80 relative z-10">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.byCorporation}>
+              <BarChart data={stats.byCorporation} margin={{ top: 30, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorWorkload" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="#b91c1c" stopOpacity={0.3} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} fontWeight={600} />
                 <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                  itemStyle={{ color: '#ef4444' }}
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                <Bar
+                  dataKey="count"
+                  name="Assigned Issues"
+                  fill="url(#colorWorkload)"
+                  radius={[8, 8, 0, 0]}
+                  animationDuration={1500}
+                  animationEasing="ease-out"
+                  label={{ position: 'top', fill: '#f87171', fontSize: 12, fontWeight: 'bold', formatter: (val: any) => val > 0 ? val : '' }}
                 />
-                <Bar dataKey="count" fill="#ef4444" radius={[6, 6, 0, 0]} label={{ position: 'top', fill: '#ef4444', fontSize: 10 }} />
               </BarChart>
             </ResponsiveContainer>
           </div>

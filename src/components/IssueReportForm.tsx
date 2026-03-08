@@ -4,13 +4,13 @@ import { MapPicker } from './MapComponents';
 
 const Input = ({ label, icon: Icon, readOnly, ...props }: any) => (
   <div className="space-y-2">
-    <label className="text-xs font-bold text-yellow-500 uppercase tracking-widest ml-1">{label}</label>
+    <label className="text-xs font-bold text-yellow-500 uppercase tracking-widest ml-1">{label} <span className="text-red-500">*</span></label>
     <div className="relative">
       {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />}
       <input
         {...props}
         readOnly={readOnly}
-        className={`w-full ${readOnly ? 'bg-white/10 opacity-70 cursor-not-allowed' : 'bg-white/5'} border border-white/10 ${Icon ? 'pl-12' : 'px-4'} pr-4 py-4 rounded-2xl outline-none focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/10 transition-all text-white placeholder:text-slate-600`}
+        className={`w-full bg-white/5 border border-white/10 ${Icon ? 'pl-12' : 'px-4'} pr-4 py-4 rounded-2xl outline-none focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/10 transition-all text-white placeholder:text-slate-600 block`}
       />
     </div>
   </div>
@@ -128,7 +128,7 @@ export const IssueReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess
             onChange={(e: any) => setFormData({ ...formData, title: e.target.value })}
           />
           <div className="space-y-2">
-            <label className="text-xs font-bold text-yellow-500 uppercase tracking-widest ml-1">Category</label>
+            <label className="text-xs font-bold text-yellow-500 uppercase tracking-widest ml-1">Category <span className="text-red-500">*</span></label>
             <select
               className="w-full bg-white/5 border border-white/10 px-4 py-4 rounded-2xl outline-none focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/10 transition-all text-white appearance-none"
               value={formData.category}
@@ -145,12 +145,12 @@ export const IssueReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-bold text-yellow-500 uppercase tracking-widest ml-1">Detailed Description</label>
+          <label className="text-xs font-bold text-yellow-500 uppercase tracking-widest ml-1">Detailed Description <span className="text-red-500">*</span></label>
           <textarea
             required
             rows={4}
             placeholder="Provide as much detail as possible..."
-            className="w-full bg-white/5 border border-white/10 px-4 py-4 rounded-2xl outline-none focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/10 transition-all text-white placeholder:text-slate-600 resize-none"
+            className="w-full bg-white/5 border border-white/10 px-4 py-4 rounded-2xl outline-none focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/10 transition-all text-white placeholder:text-slate-600 resize-none block"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />

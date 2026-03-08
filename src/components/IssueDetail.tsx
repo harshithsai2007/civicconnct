@@ -46,12 +46,17 @@ export const IssueDetail: React.FC<{ issueId: number; onClose: () => void; isAdm
   const { issue, timeline, comments } = data;
 
   const handleAssignCorporation = async (corp: string) => {
-    await fetch(`/api/issues/${issueId}/assign`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ corporation: corp }),
-    });
-    fetchData();
+    setUpdating(true);
+    try {
+      await fetch(`/api/issues/${issueId}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ corporation: corp }),
+      });
+      await fetchData();
+    } finally {
+      setUpdating(false);
+    }
   };
 
 
@@ -133,7 +138,6 @@ export const IssueDetail: React.FC<{ issueId: number; onClose: () => void; isAdm
                 <p className="text-slate-300 text-lg leading-relaxed">{issue.description}</p>
               </div>
 
-              {/* Admin actions */}
               {isAdmin && (
                 <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 space-y-6">
                   <h4 className="text-sm font-bold text-slate-400 flex items-center gap-3 uppercase tracking-widest">
@@ -141,9 +145,10 @@ export const IssueDetail: React.FC<{ issueId: number; onClose: () => void; isAdm
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Assign Agency</p>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Assign Agency <span className="text-red-500">*</span></p>
                       <select
-                        className="w-full bg-black/40 border border-white/10 px-4 py-3 rounded-xl text-sm outline-none focus:border-red-500/50 transition-all text-white"
+                        disabled={updating}
+                        className="w-full bg-black/40 border border-white/10 px-4 py-3 rounded-xl text-sm outline-none focus:border-red-500/50 transition-all text-white disabled:opacity-50"
                         value={issue.assigned_corporation || ''}
                         onChange={(e) => handleAssignCorporation(e.target.value)}
                       >
@@ -164,12 +169,29 @@ export const IssueDetail: React.FC<{ issueId: number; onClose: () => void; isAdm
                   </div>
 
                   <div className="pt-4 flex flex-wrap gap-2">
-                    <button onClick={() => updateStatus('in_progress')} className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-all">Start Work</button>
-                    <button onClick={() => updateStatus('resolved')} className="px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold hover:bg-emerald-500 hover:text-white transition-all">Mark Resolved</button>
+                    {issue.status === 'not_started' && (
+                      <button
+                        disabled={updating}
+                        onClick={() => updateStatus('in_progress')}
+                        className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-all disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {updating ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                        Start Work
+                      </button>
+                    )}
+                    {issue.status !== 'resolved' && (
+                      <button
+                        disabled={updating}
+                        onClick={() => updateStatus('resolved')}
+                        className="px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {updating ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                        Mark Resolved
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
-
             </div>
 
             {/* Right column */}

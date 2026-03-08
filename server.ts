@@ -280,25 +280,42 @@ async function startServer() {
   });
 
   app.patch("/api/issues/:id/status", (req, res) => {
-    const { status, note } = req.body;
-    const issueId = req.params.id;
+    try {
+      const { status, note } = req.body;
+      const issueId = req.params.id;
 
-    db.prepare("UPDATE issues SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(status, issueId);
-    db.prepare("INSERT INTO timeline (issue_id, status, note) VALUES (?, ?, ?)")
-      .run(issueId, status, note || `Status updated to ${status}`);
+      const current: any = db.prepare("SELECT status FROM issues WHERE id = ?").get(issueId);
+      if (current && current.status !== status) {
+        db.prepare("UPDATE issues SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(status, issueId);
+        db.prepare("INSERT INTO timeline (issue_id, status, note) VALUES (?, ?, ?)")
+          .run(issueId, status, note || `Status updated to ${status}`);
+      }
 
-    res.json({ success: true });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Status Update Error:", error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.patch("/api/issues/:id/assign", (req, res) => {
-    const { corporation } = req.body;
-    const issueId = req.params.id;
+    try {
+      const { corporation } = req.body;
+      const issueId = req.params.id;
 
-    db.prepare("UPDATE issues SET assigned_corporation = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(corporation, issueId);
-    db.prepare("INSERT INTO timeline (issue_id, status, note) VALUES (?, (SELECT status FROM issues WHERE id = ?), ?)")
-      .run(issueId, issueId, `Issue assigned to ${corporation}`);
+      const current: any = db.prepare("SELECT assigned_corporation, status FROM issues WHERE id = ?").get(issueId);
 
-    res.json({ success: true, corporation });
+      if (current && current.assigned_corporation !== corporation) {
+        db.prepare("UPDATE issues SET assigned_corporation = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(corporation, issueId);
+        db.prepare("INSERT INTO timeline (issue_id, status, note) VALUES (?, ?, ?)")
+          .run(issueId, current.status, `Issue assigned to ${corporation || 'None'}`);
+      }
+
+      res.json({ success: true, corporation });
+    } catch (error: any) {
+      console.error("Assign Agency Error:", error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
 
