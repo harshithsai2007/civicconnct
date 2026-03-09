@@ -47,7 +47,8 @@ const seedUsers = async () => {
 // --- Auth Routes ---
 app.post("/api/auth/register", async (req, res) => {
     await connectDB();
-    const { email, password, role } = req.body;
+    const email = req.body.email.toLowerCase().trim();
+    const { password, role } = req.body;
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await User.create({ email, password: hashedPassword, role: role || 'user' });
@@ -60,7 +61,8 @@ app.post("/api/auth/register", async (req, res) => {
 app.post("/api/auth/login", async (req, res) => {
     await connectDB();
     await seedUsers();
-    const { email, password } = req.body;
+    const email = req.body.email.toLowerCase().trim();
+    const { password } = req.body;
     const user = await User.findOne({ email });
     if (!user || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ error: "Invalid credentials" });
