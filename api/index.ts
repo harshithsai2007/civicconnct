@@ -1,5 +1,5 @@
 import express from "express";
-import { User, Issue, Vote, Comment, Timeline, connectDB } from "../src/db-mongo.js";
+import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -8,15 +8,63 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "civic-connect-secret-key";
+const MONGODB_URI = process.env.MONGODB_URI!;
 
-// Use memory storage for uploads on Vercel (no persistent disk)
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+// ─── DB MODELS (Inlined for Vercel Stability) ──────────────────────────────
+const UserSchema = new Schema({
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, default: 'user' },
+    reputation: { type: Number, default: 0 },
+}, { timestamps: true });
 
-const app = express();
-app.use(express.json({ limit: '10mb' }));
+const IssueSchema = new Schema({
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    category: { type: String, required: true },
+    state: { type: String, required: true },
+    district: { type: String, required: true },
+    locality: { type: String, required: true },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
+    photo_url: { type: String, default: null },
+    status: { type: String, default: 'not_started' },
+    assigned_corporation: { type: String, default: null },
+    votes: { type: Number, default: 0 },
+}, { timestamps: true });
 
-// ─── UTILS ──────────────────────────────────────────────────────────────---
+const VoteSchema = new Schema({
+    issue_id: { type: Schema.Types.ObjectId, ref: 'Issue', required: true },
+    ip_address: { type: String, required: true },
+}, { timestamps: true });
+VoteSchema.index({ issue_id: 1, ip_address: 1 }, { unique: true });
+
+const CommentSchema = new Schema({
+    issue_id: { type: Schema.Types.ObjectId, ref: 'Issue', required: true },
+    text: { type: String, required: true },
+    user_role: { type: String, required: true },
+}, { timestamps: true });
+
+const TimelineSchema = new Schema({
+    issue_id: { type: Schema.Types.ObjectId, ref: 'Issue', required: true },
+    status: { type: String, required: true },
+    note: { type: String },
+}, { timestamps: true });
+
+const User = mongoose.models.User || mongoose.model('User', UserSchema);
+const Issue = mongoose.models.Issue || mongoose.model('Issue', IssueSchema);
+const Vote = mongoose.models.Vote || mongoose.model('Vote', VoteSchema);
+const Comment = mongoose.models.Comment || mongoose.model('Comment', CommentSchema);
+const Timeline = mongoose.models.Timeline || mongoose.model('Timeline', TimelineSchema);
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────
+let isConnected = false;
+const connectDB = async () => {
+    if (isConnected) return;
+    await mongoose.connect(MONGODB_URI);
+    isConnected = true;
+};
+
 const seedUsers = async (forceReset = false) => {
     const adminEmail = "admin@civicconnect.com";
     const existingAdmin = await User.findOne({ email: adminEmail });
@@ -40,19 +88,20 @@ const seedUsers = async (forceReset = false) => {
     }
 };
 
-// ─── ROUTES ─────────────────────────────────────────────────────────────---
-// Vercel can pass /api/xxx or /xxx depending on rewrites. 
-// We'll use a router or regex to match both for critical routes.
+// ─── APP SETUP ────────────────────────────────────────────────────────────
+const app = express();
+app.use(express.json({ limit: '10mb' }));
 
 const router = express.Router();
 
 router.get("/health", (req, res) => res.json({ status: "ok" }));
 
+// MOUNTING DEFENSIVELY (matches both with and without /api prefix)
 router.get("/admin/emergency-reset", async (req, res) => {
     try {
         await connectDB();
         await seedUsers(true);
-        res.json({ success: true, message: "Admin reset to 'admin123'" });
+        res.json({ success: true, message: "Admin password has been reset to 'admin123'. Please log in now." });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
     }
@@ -62,9 +111,8 @@ router.post("/auth/register", async (req, res) => {
     try {
         await connectDB();
         const email = req.body.email.toLowerCase().trim();
-        const { password, role } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await User.create({ email, password: hashedPassword, role: role || 'user' });
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        const newUser = await User.create({ email, password: hashedPassword, role: req.body.role || 'user' });
         res.json({ id: newUser._id });
     } catch (error: any) {
         res.status(400).json({ error: error.message });
@@ -76,9 +124,8 @@ router.post("/auth/login", async (req, res) => {
         await connectDB();
         await seedUsers();
         const email = req.body.email.toLowerCase().trim();
-        const { password } = req.body;
         const user = await User.findOne({ email });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
         const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET);
@@ -96,12 +143,11 @@ router.get("/issues", async (req, res) => {
     if (district) query.district = district;
     if (category) query.category = category;
     if (status) query.status = status;
-
     const issues = await Issue.find(query).sort({ createdAt: -1 });
     res.json(issues.map(i => ({ ...i.toObject(), id: i._id, created_at: (i as any).createdAt })));
 });
 
-router.post("/issues", upload.single("photo"), async (req, res) => {
+router.post("/issues", multer({ storage: multer.memoryStorage() }).single("photo"), async (req, res) => {
     await connectDB();
     const { title, description, category, state, district, locality, latitude, longitude } = req.body;
     const photo_url = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null;
@@ -165,11 +211,29 @@ router.get("/analytics", async (req, res) => {
     const total = await Issue.countDocuments();
     const resolved = await Issue.countDocuments({ status: 'resolved' });
     const pending = await Issue.countDocuments({ status: { $ne: 'resolved' } });
-    const highPriority = await Issue.countDocuments({ votes: { $gte: 10 } });
-    res.json({ total, resolved, pending, highPriority });
+    const issues = await Issue.find({ votes: { $gte: 10 } });
+    res.json({ total, resolved, pending, highPriority: issues.length });
 });
 
-// Mount the router at both /api and / to handle Vercel's rewrite quirks
+// EXTRA DEFENSIVE MOUNTING
+app.get("/api/admin/emergency-reset", async (req, res) => {
+    try { await connectDB(); await seedUsers(true); res.json({ success: true, message: "Admin reset to 'admin123'" }); }
+    catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+    try {
+        await connectDB(); await seedUsers();
+        const email = req.body.email.toLowerCase().trim();
+        const user = await User.findOne({ email });
+        if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+        const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET);
+        res.json({ token, user: { id: user._id, email: user.email, role: user.role } });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
 app.use("/api", router);
 app.use("/", router);
 
