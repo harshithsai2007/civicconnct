@@ -28,14 +28,24 @@ const upload = multer({ storage });
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 
-// Seed users on first cold start
-const seedUsers = async () => {
+// Seed users on first cold start or via emergency reset
+const seedUsers = async (forceReset = false) => {
     const adminEmail = "admin@civicconnect.com";
     const existingAdmin = await User.findOne({ email: adminEmail });
-    if (!existingAdmin) {
+
+    if (!existingAdmin || forceReset) {
         const hashedPassword = await bcrypt.hash("admin123", 10);
-        await User.create({ email: adminEmail, password: hashedPassword, role: 'admin' });
+        if (existingAdmin) {
+            existingAdmin.password = hashedPassword;
+            existingAdmin.role = 'admin';
+            await existingAdmin.save();
+            console.log("Admin account password reset to 'admin123'");
+        } else {
+            await User.create({ email: adminEmail, password: hashedPassword, role: 'admin' });
+            console.log("Admin account created with password 'admin123'");
+        }
     }
+
     const userEmail = "citizen@civicconnect.com";
     const existingUser = await User.findOne({ email: userEmail });
     if (!existingUser) {
@@ -43,6 +53,13 @@ const seedUsers = async () => {
         await User.create({ email: userEmail, password: hashedPassword, role: 'user' });
     }
 };
+
+// --- Emergency Reset Route (Temporary) ---
+app.get("/api/admin/emergency-reset", async (req, res) => {
+    await connectDB();
+    await seedUsers(true);
+    res.json({ message: "Admin password has been reset to 'admin123'. Please log in now." });
+});
 
 // --- Auth Routes ---
 app.post("/api/auth/register", async (req, res) => {
