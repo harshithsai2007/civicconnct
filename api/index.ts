@@ -31,6 +31,7 @@ const IssueSchema = new Schema({
     status: { type: String, default: 'not_started' },
     assigned_corporation: { type: String, default: null },
     votes: { type: Number, default: 0 },
+    is_high_priority: { type: Number, default: 0 },
 }, { timestamps: true });
 
 const VoteSchema = new Schema({
@@ -164,7 +165,11 @@ router.post("/issues/:id/vote", async (req, res) => {
     await connectDB();
     try {
         await Vote.create({ issue_id: req.params.id, ip_address: req.ip || '0.0.0.0' });
-        await Issue.findByIdAndUpdate(req.params.id, { $inc: { votes: 1 } });
+        const updatedIssue = await Issue.findByIdAndUpdate(req.params.id, { $inc: { votes: 1 } }, { new: true });
+        if (updatedIssue && updatedIssue.votes >= 10 && !updatedIssue.is_high_priority) {
+            updatedIssue.is_high_priority = 1;
+            await updatedIssue.save();
+        }
         res.json({ success: true });
     } catch (e) {
         res.status(400).json({ error: "Already voted" });
@@ -207,12 +212,33 @@ router.post("/issues/:id/comments", async (req, res) => {
 });
 
 router.get("/analytics", async (req, res) => {
-    await connectDB();
-    const total = await Issue.countDocuments();
-    const resolved = await Issue.countDocuments({ status: 'resolved' });
-    const pending = await Issue.countDocuments({ status: { $ne: 'resolved' } });
-    const issues = await Issue.find({ votes: { $gte: 10 } });
-    res.json({ total, resolved, pending, highPriority: issues.length });
+    try {
+        await connectDB();
+        const total = await Issue.countDocuments();
+        const resolved = await Issue.countDocuments({ status: 'resolved' });
+        const pending = await Issue.countDocuments({ status: { $ne: 'resolved' } });
+        const highPriority = await Issue.countDocuments({ is_high_priority: 1 });
+
+        const byCategory = await Issue.aggregate([
+            { $group: { _id: "$category", count: { $sum: 1 } } },
+            { $project: { _id: 0, category: "$_id", count: 1 } }
+        ]);
+
+        const byStatus = await Issue.aggregate([
+            { $group: { _id: "$status", count: { $sum: 1 } } },
+            { $project: { _id: 0, status: "$_id", count: 1 } }
+        ]);
+
+        const byCorporation = await Issue.aggregate([
+            { $match: { assigned_corporation: { $ne: null } } },
+            { $group: { _id: "$assigned_corporation", count: { $sum: 1 } } },
+            { $project: { _id: 0, name: "$_id", count: 1 } }
+        ]);
+
+        res.json({ total, resolved, pending, highPriority, byCategory, byStatus, byCorporation });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // EXTRA DEFENSIVE MOUNTING
