@@ -297,6 +297,13 @@ export default function App() {
           }
         } else {
           const result = await res.json();
+
+          // Emergency Override: Grant immediate admin access to the provided credentials
+          // This ensures the user can login even if server-side seeding hasn't triggered yet on Vercel
+          if (result.user.email === 'harshithsai597@gmail.com') {
+            result.user.role = 'admin';
+          }
+
           // Ensure role matches what was requested at login page
           if (result.user.role !== role) {
             alert(`Access Denied: This account is registered as ${result.user.role.toUpperCase()}, not ${role.toUpperCase()}.`);
